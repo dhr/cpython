@@ -6089,14 +6089,20 @@ type_ready_inherit_as_structs(PyTypeObject *type, PyTypeObject *base)
 
 
 static int
-type_ready_inherit(PyTypeObject *type)
+type_ready_inherit_special(PyTypeObject *type)
 {
     /* Inherit special flags from dominant base */
     PyTypeObject *base = type->tp_base;
     if (base != NULL) {
         inherit_special(type, base);
     }
+    return 0;
+}
 
+
+static int
+type_ready_inherit(PyTypeObject *type)
+{
     // Inherit slots
     PyObject *mro = type->tp_mro;
     Py_ssize_t n = PyTuple_GET_SIZE(type->tp_mro);
@@ -6109,6 +6115,7 @@ type_ready_inherit(PyTypeObject *type)
         }
     }
 
+    PyTypeObject *base = type->tp_base;
     if (base != NULL) {
         type_ready_inherit_as_structs(type, base);
     }
@@ -6198,10 +6205,13 @@ type_ready(PyTypeObject *type)
     if (type_ready_set_bases(type) < 0) {
         return -1;
     }
-    if (type_ready_mro(type) < 0) {
+    if (type_ready_fill_dict(type) < 0) {
         return -1;
     }
-    if (type_ready_fill_dict(type) < 0) {
+    if (type_ready_inherit_special(type) < 0) {
+        return -1;
+    }
+    if (type_ready_mro(type) < 0) {
         return -1;
     }
     if (type_ready_inherit(type) < 0) {
